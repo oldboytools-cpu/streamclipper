@@ -69,8 +69,8 @@ def test_53_options_and_vision_install():
     assert 'EXTRAS = "asr,gpu,vision" if globals().get("HAS_GPU", False) else "asr,vision"' in install
     assert "capture_output=True" in install and "print(doctor.stdout, doctor.stderr)" in install
     opts = next(c for c in cells if c.startswith("#@title 6."))
-    assert 'hud = "auto"  #@param ["auto", "off", "gta5", "gta6", "generic"]' in opts
-    assert 'zoom = "off"  #@param ["off", "light", "medium", "strong"]' in opts
+    assert 'hud = "gta6"  #@param ["gta6", "auto", "off", "gta5", "generic"]' in opts
+    assert 'zoom = "light"  #@param ["off", "light", "medium", "strong"]' in opts
     assert 'remove_fillers = False  #@param {type:"boolean"}' in opts
     assert 'enhance_speech = "off"  #@param ["off", "light", "strong"]' in opts
     run = next(c for c in cells if c.startswith("#@title 7."))
