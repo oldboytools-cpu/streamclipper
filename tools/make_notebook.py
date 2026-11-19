@@ -35,7 +35,7 @@ Drive access stays inside your own Google account. StreamClipper has no server.
 Publishing to YouTube Shorts or Instagram Reels runs from your PC (`streamclipper publish` or the dashboard),
 not from Colab: download the MP4s, then publish them there.
 
-Clip only streams you have permission to clip (the streamer's permission or an official clipping program).
+For GTA VI VODs, cell 6 defaults to the experimental GTA VI HUD profile, 9:16 output, light payoff zoom and automatic gaming captions.\n\nClip only streams you have permission to clip (the streamer's permission or an official clipping program).
 """
 
 CELL_GPU = """#@title 1. Check the GPU
@@ -56,7 +56,7 @@ else:
 
 CELL_INSTALL = """#@title 2. Install StreamClipper
 install_from = "github"  #@param ["github", "drive_zip"]
-github_repo = "https://github.com/alokbaraii/streamclipper.git"  #@param {type:"string"}
+github_repo = "https://github.com/oldboytools-cpu/streamclipper.git"  #@param {type:"string"}
 drive_zip_path = "/content/drive/MyDrive/streamclipper.zip"  #@param {type:"string"}
 
 import os
@@ -155,7 +155,7 @@ else:
 CELL_INPUTS = """#@title 5. Your stream
 #@markdown A YouTube/Twitch/Kick link, or the Drive path of a video you uploaded
 #@markdown (e.g. `/content/drive/MyDrive/my_stream.mp4`). A Drive file avoids YouTube's bot check.
-source = "https://www.youtube.com/watch?v=VIDEO_ID"  #@param {type:"string"}
+source = "PASTE_YOUR_YOUTUBE_STREAMER_URL_HERE"  #@param {type:"string"}
 #@markdown Optional, only if YouTube says "Sign in to confirm you're not a bot": the Drive path of a
 #@markdown cookies.txt. **A cookies file gives access to your account. Never share it; delete it after use.**
 cookies_path = ""  #@param {type:"string"}
@@ -182,10 +182,10 @@ make_drafts = True  #@param {type:"boolean"}
 #@markdown **Share on Drive** makes "anyone with the link can view" Drive links for the finished MP4s,
 #@markdown index.html and clips.csv. Anyone with the link can see the clip. Default off.
 share_on_drive = False  #@param {type:"boolean"}
-#@markdown Game screen events (WASTED, BUSTED, mission passed, wanted stars): `auto` picks the game profile.
-hud = "auto"  #@param ["auto", "off", "gta5", "gta6", "generic"]
+#@markdown GTA VI HUD profile is experimental; audio/gameplay scoring still works when HUD reads are missed.
+hud = "gta6"  #@param ["gta6", "auto", "off", "gta5", "generic"]
 #@markdown Editing effects (all off by default): punch-in zoom on the payoff, filler-word removal, speech cleanup.
-zoom = "off"  #@param ["off", "light", "medium", "strong"]
+zoom = "light"  #@param ["off", "light", "medium", "strong"]
 remove_fillers = False  #@param {type:"boolean"}
 enhance_speech = "off"  #@param ["off", "light", "strong"]
 
