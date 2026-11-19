@@ -1,4 +1,12 @@
 # Changelog
+
+## Unreleased
+
+### Added
+- GTA VI streamer Shorts shortcut: `streamclipper-gta-shorts URL` creates ranked 9:16 MP4 clips with automatic category captions, hook banners and light payoff zoom; local processing is the default and no paid AI API is required.
+- Colab notebook defaults for the user's fork: YouTube URL placeholder, GTA VI HUD profile, 9:16 output, 10 rendered clips, automatic captions, bold-box hooks and light zoom.
+- GTA VI VOD quickstart and experimental HUD limitations in the fork README.
+
 ## 5.3.0 (2026-11-19)
 ### Added
 - Game HUD detection: `--hud auto|off|gta5|gta6|generic` and `--hud-profile FILE` on `discover-clips` and `clip-stream`. The GTA V profile finds WASTED, BUSTED, MISSION PASSED, MISSION FAILED and 3+ wanted stars (test videos: precision 1.00, recall 0.71); `gta6` is experimental; `generic` looks for big text, flashes and kill-feed bursts. Events add a `hud` score component and reasons such as "WASTED on screen". OCR uses a PaddleOCR ONNX model downloaded once (SHA-256 checked).
