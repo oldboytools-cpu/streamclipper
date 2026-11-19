@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <a href="https://colab.research.google.com/github/alokbaraii/streamclipper/blob/main/notebooks/StreamClipper_Colab.ipynb"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open in Colab"></a>
+  <a href="https://colab.research.google.com/github/oldboytools-cpu/streamclipper/blob/main/notebooks/StreamClipper_Colab.ipynb"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open in Colab"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-AGPL--3.0-blue.svg" alt="License: AGPL-3.0"></a>
   <a href="https://github.com/alokbaraii/streamclipper"><img src="https://img.shields.io/github/stars/alokbaraii/streamclipper?style=social" alt="GitHub stars"></a>
 </p>
@@ -43,7 +43,7 @@ Your clips land in Google Drive under `MyDrive/StreamClipper/`.
 Needs Python 3.10+ and ffmpeg (`winget install Gyan.FFmpeg`).
 
 ```powershell
-git clone https://github.com/alokbaraii/streamclipper.git
+git clone https://github.com/oldboytools-cpu/streamclipper.git
 cd streamclipper
 python -m pip install -e ".[asr,gpu,vision]"
 streamclipper doctor
@@ -52,7 +52,32 @@ streamclipper clip-stream --url "https://www.twitch.tv/videos/<id>" --out work -
 
 No NVIDIA GPU? Install with `".[asr,vision]"` instead. It works on the CPU, just slower.
 
-Open `work\index.html` to see your clips ranked by score.
+Open `work\\index.html` to see your clips ranked by score.
+
+## GTA VI streamer Shorts
+
+The fork includes a GTA-focused shortcut with 9:16 output, gaming highlight scoring, automatic category captions, a hook banner, light payoff zoom and up to 10 rendered MP4s. It uses the existing local pipeline; the shortcut does not require a paid AI API.
+
+### Google Colab (recommended)
+
+1. Open the **Open in Colab** badge at the top of this fork.
+2. Select **Runtime > Change runtime type > T4 GPU** when available.
+3. Run the cells from top to bottom.
+4. Paste the YouTube VOD URL in cell 5 and run cell 7. The notebook saves results to `MyDrive/StreamClipper/`.
+
+The fork's notebook defaults are pre-set for GTA VI: 9:16, 10 clips, score threshold 50, auto captions, bold-box hooks, the GTA VI HUD profile and light payoff zoom. You still need to paste your own stream URL and approve Google Drive access.
+
+### Windows command
+
+After installing the project and its ASR/vision extras, run:
+
+```powershell
+python -m pip install -e ".[asr,vision]"
+streamclipper-gta-shorts "https://www.youtube.com/watch?v=<VIDEO_ID>" --out gta6_shorts
+```
+
+Add `.[asr,gpu,vision]` instead when using a supported NVIDIA GPU. The GTA VI HUD profile is experimental and is based on the existing GTA V event template; it can add WASTED/BUSTED/mission/wanted-level signals, but should not be treated as a reliable GTA VI-specific detector yet. Audio/gameplay highlight scoring continues to work if HUD recognition misses an event.
+
 
 ## Live clipping
 
