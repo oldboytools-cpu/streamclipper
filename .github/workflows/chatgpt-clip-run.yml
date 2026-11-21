@@ -1,0 +1,82 @@
+name: Generate viral YouTube clips
+
+on:
+  push:
+    branches:
+      - chatgpt-clip-run-20261121
+    paths:
+      - ".github/workflows/chatgpt-clip-run.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  clip:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - name: Check out StreamClipper
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Install StreamClipper with CPU transcription
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[asr]"
+
+      - name: Analyse VOD and render top 5 vertical clips
+        env:
+          YOUTUBE_URL: "https://www.youtube.com/watch?v=OIeLbmyraRQ"
+        run: |
+          streamclipper clip-stream \
+            --url "$YOUTUBE_URL" \
+            --out output \
+            --prefix gta6 \
+            --max-clips 5 \
+            --min-score 45 \
+            --min-dur 15 \
+            --max-dur 55 \
+            --target-dur 35 \
+            --asr regions \
+            --whisper-model base \
+            --device cpu \
+            --language en \
+            --content gaming \
+            --ratio 9:16 \
+            --preset streamer-split-9x16 \
+            --caption-style gaming-glitch \
+            --hook-style bold-box \
+            --zoom light \
+            --no-draft \
+            --render
+
+      - name: Prepare clips bundle
+        run: |
+          mkdir -p deliverable
+          cp output/*.mp4 deliverable/ 2>/dev/null || true
+          cp output/*_thumb.jpg deliverable/ 2>/dev/null || true
+          cp output/clips.json output/clips.csv output/index.html deliverable/ 2>/dev/null || true
+          test -n "$(find deliverable -maxdepth 1 -name '*.mp4' -print -quit)" || {
+            echo "No MP4 clips were rendered."
+            find output -maxdepth 2 -type f -print || true
+            exit 1
+          }
+          cd deliverable && zip -q -r ../viral-clips.zip .
+
+      - name: Upload finished MP4 clips
+        uses: actions/upload-artifact@v4
+        with:
+          name: gta6-viral-clips
+          path: viral-clips.zip
+          retention-days: 7
+          if-no-files-found: error
