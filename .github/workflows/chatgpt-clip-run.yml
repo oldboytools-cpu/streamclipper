@@ -4,8 +4,7 @@ on:
   push:
     branches:
       - chatgpt-clip-run-20261121
-    paths:
-      - ".github/workflows/chatgpt-clip-run.yml"
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -34,7 +33,7 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -e ".[asr]"
 
-      - name: Analyse VOD and render top 5 vertical clips
+      - name: Analyse VOD and render the five strongest vertical clips
         env:
           YOUTUBE_URL: "https://www.youtube.com/watch?v=OIeLbmyraRQ"
         run: |
@@ -43,7 +42,7 @@ jobs:
             --out output \
             --prefix gta6 \
             --max-clips 5 \
-            --min-score 45 \
+            --min-score 50 \
             --min-dur 15 \
             --max-dur 55 \
             --target-dur 35 \
@@ -60,7 +59,7 @@ jobs:
             --no-draft \
             --render
 
-      - name: Prepare clips bundle
+      - name: Package MP4 clips and metadata
         run: |
           mkdir -p deliverable
           cp output/*.mp4 deliverable/ 2>/dev/null || true
