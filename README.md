@@ -128,3 +128,16 @@ Close CapCut, run `clip-stream` without `--no-draft`, then open CapCut. Your cli
 Only clip streams you have permission to clip, such as a streamer's official clipping program. CapCut effects are copied from your own CapCut install. Fonts are under the OFL or Apache licences; dashboard icons are from Lucide (ISC).
 
 Code licence: [AGPL-3.0](LICENSE). You can use, change and share it for free. If you run a changed version as an online service, you must share your source code too.
+
+
+## Private cloud deployment (single-owner web workspace)
+
+A Render deployment blueprint is included in `render.yaml`. It runs the existing dashboard behind Render's HTTPS proxy, uses a persistent disk for uploaded videos and generated clips, and protects the workspace with a generated bearer token. It is a **single-owner private workspace**, not a multi-user SaaS: anyone who obtains the token can control the workspace. Keep deployment logs and the token private.
+
+1. Push this repository to your GitHub account (this branch is already published by the assistant as `deploy/vfab-cloud-first`).
+2. In Render, create a new Blueprint from this repository and select `render.yaml`.
+3. Render provisions the web service, persistent disk and a strong generated `STREAMCLIPPER_ACCESS_TOKEN`.
+4. After deployment, open the service logs and use the printed HTTPS URL containing `?token=...`. Save it privately; it is the workspace access link.
+5. The service uses CPU processing. Long videos can take a long time and may exceed the memory/disk limits of a small instance. The included blueprint uses a paid instance and persistent storage; hosting and compute are not free.
+
+For production multi-user access, add per-user authentication, quotas, isolated worker queues, object storage and a database before inviting other users. Do not expose this single-token workspace publicly or share its URL.

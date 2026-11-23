@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: vfab-ai-private
+    runtime: docker
+    plan: standard
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /healthz
+    autoDeploy: true
+    disk:
+      name: vfab-ai-data
+      mountPath: /data
+      sizeGB: 20
+    envVars:
+      - key: STREAMCLIPPER_ACCESS_TOKEN
+        generateValue: true
+      - key: STREAMCLIPPER_TRUST_PROXY
+        value: "1"
+      - key: STREAMCLIPPER_WORKSPACE
+        value: /data/StreamClipper
+      - key: STREAMCLIPPER_CONFIG_DIR
+        value: /data/config
+      - key: XDG_CACHE_HOME
+        value: /data/cache
+      - key: PORT
+        value: "10000"

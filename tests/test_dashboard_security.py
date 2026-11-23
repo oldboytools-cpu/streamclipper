@@ -178,3 +178,31 @@ def test_no_secret_in_responses_or_logs(dash, monkeypatch):
         st, _h, body = dash.req("GET", path)
         assert st == 200 and b"sk-test-SECRET" not in body, path
     assert dash.json("GET", "/api/settings")[1]["gemini"] == "set"
+
+
+
+def test_cloud_proxy_uses_https_origin_and_secure_cookie(lan, monkeypatch):
+    monkeypatch.setenv("STREAMCLIPPER_TRUST_PROXY", "1")
+    st, headers, _ = lan.req(
+        "GET", f"/?token={lan.access}", cookie=None,
+        headers={"X-Forwarded-Proto": "https", "Host": "vfab.example.com"},
+    )
+    assert st == 302
+    assert "; Secure" in headers["Set-Cookie"]
+
+    st, _headers, _body = lan.req(
+        "POST", "/api/jobs", {"source": "https://example.com/video"},
+        headers={
+            "X-CSRF-Token": lan.csrf,
+            "Origin": "https://vfab.example.com",
+            "Host": "vfab.example.com",
+            "X-Forwarded-Proto": "https",
+        },
+    )
+    assert st in (201, 202)
+
+
+def test_healthz_is_public_but_contains_no_private_data(lan):
+    st, _headers, body = lan.req("GET", "/healthz", cookie=None)
+    assert st == 200
+    assert json.loads(body) == {"status": "ok", "service": "streamclipper"}

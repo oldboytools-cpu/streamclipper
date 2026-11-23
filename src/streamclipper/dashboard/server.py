@@ -234,7 +234,10 @@ class DashboardServer(ThreadingHTTPServer):
         self.ws.mkdir(parents=True, exist_ok=True)
         (self.ws / "uploads").mkdir(exist_ok=True)
         self.lan = bool(lan)
-        self.access = secrets.token_urlsafe(24) if lan else ""
+        configured_access = os.environ.get("STREAMCLIPPER_ACCESS_TOKEN", "").strip()
+        if self.lan and configured_access and len(configured_access) < 32:
+            raise ValueError("STREAMCLIPPER_ACCESS_TOKEN must contain at least 32 characters.")
+        self.access = (configured_access or secrets.token_urlsafe(32)) if lan else ""
         self.csrf = secrets.token_urlsafe(24)
         self.draft_root = str(draft_root or "")
         self.store = JobStore(self.ws)
@@ -441,7 +444,13 @@ class Handler(BaseHTTPRequestHandler):
         if given:
             if hmac.compare_digest(given.encode(), access.encode()):
                 self.send_response(302)
-                self.send_header("Set-Cookie", f"{COOKIE}={access}; HttpOnly; SameSite=Strict; Path=/; Max-Age=2592000")
+                scheme = "http"
+                if os.environ.get("STREAMCLIPPER_TRUST_PROXY") == "1":
+                    forwarded = self.headers.get("X-Forwarded-Proto", "").split(",")[0].strip().lower()
+                    if forwarded in ("http", "https"):
+                        scheme = forwarded
+                secure = "; Secure" if scheme == "https" else ""
+                self.send_header("Set-Cookie", f"{COOKIE}={access}; HttpOnly; SameSite=Strict; Path=/; Max-Age=2592000{secure}")
                 self.send_header("Location", raw_path or "/")
                 self.send_header("Content-Length", "0")
                 self.send_header("Cache-Control", "no-store")
@@ -459,7 +468,12 @@ class Handler(BaseHTTPRequestHandler):
         if not given or not hmac.compare_digest(given.encode(), self.server.csrf.encode()):
             return False
         origin = self.headers.get("Origin")
-        return origin is None or origin == f"http://{self.headers.get('Host', '')}"
+        scheme = "http"
+        if os.environ.get("STREAMCLIPPER_TRUST_PROXY") == "1":
+            forwarded = self.headers.get("X-Forwarded-Proto", "").split(",")[0].strip().lower()
+            if forwarded in ("http", "https"):
+                scheme = forwarded
+        return origin is None or origin == f"{scheme}://{self.headers.get('Host', '')}"
 
     def _json_body(self) -> dict:
         try:
@@ -486,6 +500,9 @@ class Handler(BaseHTTPRequestHandler):
         url = urlsplit(self.path)
         query = parse_qs(url.query)
         segs = self._segments(url.path)
+        # Public load-balancer health checks expose no workspace data and need no bearer token.
+        if method == "GET" and segs == ["healthz"]:
+            return self._send_json(200, {"status": "ok", "service": "streamclipper"})
         if segs[:1] == ["s"]:
             if method != "GET":
                 raise HttpError(405, "Share links are view-only.")
@@ -1128,7 +1145,10 @@ def run_dashboard(args) -> None:
     srv = make_server(ws, args.host, args.port, args.lan, args.draft_root)
     port = srv.port
     if args.lan:
-        url = f"http://{srv.public_host}:{port}/?token={srv.access}"
+        public_url = os.environ.get("STREAMCLIPPER_PUBLIC_URL", "").rstrip("/")
+        if not public_url and os.environ.get("RENDER_EXTERNAL_HOSTNAME"):
+            public_url = "https://" + os.environ["RENDER_EXTERNAL_HOSTNAME"].strip()
+        url = f"{public_url}/?token={srv.access}" if public_url else f"http://{srv.public_host}:{port}/?token={srv.access}"
         local_url = f"http://127.0.0.1:{port}/?token={srv.access}"
         print(f"StreamClipper dashboard (network mode): {url}")
         print(f"On this PC: {local_url}")
