@@ -3,10 +3,11 @@ services:
     name: vfab-ai-private
     runtime: docker
     plan: standard
+    region: singapore
     dockerfilePath: ./Dockerfile
     dockerContext: .
     healthCheckPath: /healthz
-    autoDeploy: true
+    autoDeployTrigger: commit
     disk:
       name: vfab-ai-data
       mountPath: /data
