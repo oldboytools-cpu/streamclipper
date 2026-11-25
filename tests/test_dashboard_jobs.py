@@ -67,6 +67,12 @@ def test_argv_lists(tmp_path):
 def test_options_are_validated_and_clamped():
     o = jobs.validate_options({"min_score": 500, "max_clips": -3})
     assert o["min_score"] == 100 and o["max_clips"] == 0
+
+
+def test_clip_count_defaults_to_all_qualified_candidates():
+    assert jobs.validate_options({})["max_clips"] == 0
+    assert jobs.validate_options({"max_clips": 0})["max_clips"] == 0
+    assert jobs.validate_options({"max_clips": 12})["max_clips"] == 12
     for bad in (
         {"caption_style": "nope"},
         {"hook_style": "x"},

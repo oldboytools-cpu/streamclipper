@@ -94,7 +94,7 @@ def validate_options(raw: dict) -> dict:
         "ratio": _choice(raw.get("ratio"), RATIOS, "ratio", "9:16"),
         "llm": _choice(raw.get("llm"), PROVIDERS, "LLM", "none"),
         "min_score": _num(raw.get("min_score"), 0.0, 100.0, 50.0),
-        "max_clips": _num(raw.get("max_clips"), 0, 50, 3, int),
+        "max_clips": _num(raw.get("max_clips"), 0, 50, 0, int),  # 0 = every clip that passes min_score
         "render": parse_bool(raw.get("render"), "render", True),
         "drafts": parse_bool(raw.get("drafts"), "drafts", False),
         "stop_after": _num(raw.get("stop_after"), 0.0, 1440.0, 60.0),
