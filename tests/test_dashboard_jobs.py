@@ -45,6 +45,7 @@ def test_argv_lists(tmp_path):
     a = jobs.build_vod_argv(str(src), _opts(), tmp_path / "job")
     assert a[0] == "clip-stream" and a[a.index("--input") + 1] == str(src.resolve())
     assert "--portable-drafts" in a and a[a.index("--draft-root") + 1] == str(tmp_path / "job" / "capcut_drafts")
+    assert a[a.index("--asr") + 1] == "regions"
     assert "--fresh" not in a and a[a.index("--max-clips") + 1] == "2" and "--render" in a
     url = 'https://x.tv/v?a=1"; rm -rf / &'
     a = jobs.build_vod_argv(url, _opts(mode="podcast", drafts=False), tmp_path / "job")
@@ -52,6 +53,7 @@ def test_argv_lists(tmp_path):
     lv = jobs.build_live_argv(url, _opts(mode="live", stop_after=2, caption_style="comic-burst"), tmp_path / "j")
     assert lv[:3] == ["live", "--url", url] and lv[lv.index("--stop-after") + 1] == "2"
     assert lv[lv.index("--caption-style") + 1] == "comic-burst" and "--render" in lv
+    assert lv[lv.index("--asr") + 1] == "regions"
     r = jobs.build_render_argv(tmp_path / "clip_01.clip.json", "comic-burst", "top-bar")
     assert r == [
         "render",
@@ -73,6 +75,14 @@ def test_clip_count_defaults_to_all_qualified_candidates():
     assert jobs.validate_options({})["max_clips"] == 0
     assert jobs.validate_options({"max_clips": 0})["max_clips"] == 0
     assert jobs.validate_options({"max_clips": 12})["max_clips"] == 12
+
+
+def test_transcription_mode_defaults_to_regions_and_validates():
+    assert jobs.validate_options({})["asr"] == "regions"
+    assert jobs.validate_options({"asr": "full"})["asr"] == "full"
+    assert jobs.validate_options({"asr": "none"})["asr"] == "none"
+    with pytest.raises(ToolError):
+        jobs.validate_options({"asr": "turbo"})
     for bad in (
         {"caption_style": "nope"},
         {"hook_style": "x"},

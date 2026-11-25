@@ -126,6 +126,8 @@ def _clip_argv(source: str, work: Path, o: dict) -> list:
             )
         argv += ["--input", str(src.resolve())]
     argv += ["--max-clips", str(int(o["max_clips"])), "--min-score", str(float(o["min_score"]))]
+    if o.get("asr"):
+        argv += ["--asr", str(o["asr"])]
     argv += ["--llm", o["llm"], "--whisper-model", o["whisper_model"]]
     argv += ["--device", o["device"], "--language", o["language"]]
     for flag, key in (

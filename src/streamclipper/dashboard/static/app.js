@@ -867,7 +867,7 @@ async function brandCard(box) {
 
 async function pageHome(root) {
   const d = OPTS.defaults || {};
-  const st = { mode: "auto", preset: d.preset || "", ratio: "9:16", min_score: 50, max_clips: 0, llm: "none", render: true, drafts: false, upload: "", uploading: false, zoom: "off", enhance_speech: "off", remove_fillers: false, brand_kit: false };
+  const st = { mode: "auto", preset: d.preset || "", ratio: "9:16", min_score: 50, max_clips: 0, asr: "regions", llm: "none", render: true, drafts: false, upload: "", uploading: false, zoom: "off", enhance_speech: "off", remove_fillers: false, brand_kit: false };
   const narrow = window.matchMedia("(max-width: 640px)");
   const srcIn = h("input", { type: "text", id: "src-url", class: "hero-input", placeholder: narrow.matches ? "Paste a link or drop a video" : "Paste a stream link or drop a video", autocomplete: "off", spellcheck: "false", "aria-label": "Stream link or video" });
   const fileIn = h("input", { type: "file", id: "src-file", accept: "video/*,.mkv,.ts,.flv,.m4v", hidden: true });
@@ -954,6 +954,7 @@ async function pageHome(root) {
   llmOpts.push(OPTS.llms.includes("gemini") ? ["gemini", "Gemini"] : ["gemini", "Gemini (needs GEMINI_API_KEY)", true]);
   const llmSel = sel(llmOpts, "none", { id: "adv-llm", onchange: (e) => (st.llm = e.target.value) });
   const ratioSel = sel(OPTS.ratios, st.ratio, { id: "adv-ratio", onchange: (e) => (st.ratio = e.target.value) });
+  const asrSel = sel([["regions", "Candidate regions (faster)"], ["full", "Full stream (more context, slower)"], ["none", "Off (fastest, less speech context)"]], st.asr, { id: "adv-asr", onchange: (e) => (st.asr = e.target.value) });
   const toggle = (key, label, id) => {
     const c = h("input", { type: "checkbox", checked: st[key], id, role: "switch" });
     c.addEventListener("change", () => (st[key] = c.checked));
@@ -983,6 +984,7 @@ async function pageHome(root) {
       field("Aspect ratio", ratioSel),
       h("div", { class: "field" }, h("span", {}, "Minimum score ", scoreVal), score, h("span", { class: "hint", text: "Higher = fewer, stronger clips" })),
       field("Clips to make", maxIn, "Best first; 0 = every clip above the score"),
+      field("Speech transcription", asrSel, "Regions transcribes only stronger candidate moments; full checks every 10-minute audio chunk but is much slower on a CPU."),
       field("AI for titles", llmSel, OPTS.llms.includes("gemini") ? "" : "Set GEMINI_API_KEY before you start the dashboard to use Gemini.")
     ),
     h("div", { class: "row" }, toggle("render", "Render ready-to-post MP4s", "adv-render"), toggle("drafts", "CapCut drafts", "adv-drafts")),
@@ -1028,7 +1030,7 @@ async function pageHome(root) {
       return;
     }
     const mode = st.mode === "auto" ? (!st.upload && looksLive(src) ? "live" : "vod") : st.mode;
-    const body = { mode, preset: st.preset, caption_style: capName, hook_style: hookName, ratio: st.ratio, min_score: st.min_score, max_clips: st.max_clips, llm: st.llm, render: st.render, drafts: st.drafts, zoom: st.zoom, enhance_speech: st.enhance_speech, remove_fillers: st.remove_fillers, brand_kit: st.brand_kit };
+    const body = { mode, preset: st.preset, caption_style: capName, hook_style: hookName, ratio: st.ratio, min_score: st.min_score, max_clips: st.max_clips, asr: st.asr, llm: st.llm, render: st.render, drafts: st.drafts, zoom: st.zoom, enhance_speech: st.enhance_speech, remove_fillers: st.remove_fillers, brand_kit: st.brand_kit };
     if (mode === "live") Object.assign(body, { stop_after: 60, max_clips_per_hour: 12 });
     if (st.upload) body.upload = st.upload;
     else body.source = src;

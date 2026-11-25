@@ -28,6 +28,7 @@ from streamclipper.util import ToolError, own_group_flags
 CLI_PREFIX = [sys.executable, "-m", "streamclipper"]  # tests replace it with a fake CLI script
 JOB_ID_RE = re.compile(r"^[0-9A-Za-z-]{1,40}$")
 RATIOS = ("9:16", "1:1")
+ASR_MODES = ("full", "regions", "none")
 MODES = ("vod", "podcast", "live")
 RESUMABLE = ("failed", "cancelled", "interrupted", "stopped")
 FINISHED = ("done", "failed", "cancelled", "stopped", "interrupted")
@@ -95,6 +96,7 @@ def validate_options(raw: dict) -> dict:
         "llm": _choice(raw.get("llm"), PROVIDERS, "LLM", "none"),
         "min_score": _num(raw.get("min_score"), 0.0, 100.0, 50.0),
         "max_clips": _num(raw.get("max_clips"), 0, 50, 0, int),  # 0 = every clip that passes min_score
+        "asr": _choice(raw.get("asr"), ASR_MODES, "transcription mode", "regions"),
         "render": parse_bool(raw.get("render"), "render", True),
         "drafts": parse_bool(raw.get("drafts"), "drafts", False),
         "stop_after": _num(raw.get("stop_after"), 0.0, 1440.0, 60.0),
@@ -121,6 +123,7 @@ def build_vod_argv(source: str, opts: dict, job_dir: Path, brand_kit: Path = Non
     o = {
         "prefix": "clip",
         "max_clips": opts["max_clips"],
+        "asr": opts.get("asr", "regions"),
         "min_score": opts["min_score"],
         "llm": opts["llm"],
         "whisper_model": "auto",
@@ -161,6 +164,7 @@ def build_live_argv(source: str, opts: dict, job_dir: Path) -> list:
         argv += ["--draft-root", str(droot), "--portable-drafts"]
     else:
         argv.append("--no-draft")
+    argv += ["--asr", opts.get("asr", "regions")]
     argv += ["--llm", opts["llm"]]
     return argv
 
