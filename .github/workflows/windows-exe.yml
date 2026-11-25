@@ -3,6 +3,8 @@ name: Build VFAB AI for Windows
 on:
   workflow_dispatch:
   push:
+    branches:
+      - "deploy/vfab-cloud-first"
     tags:
       - "vfab-v*"
 
