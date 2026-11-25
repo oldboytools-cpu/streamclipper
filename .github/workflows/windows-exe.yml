@@ -3,8 +3,15 @@ name: Build VFAB AI for Windows
 on:
   workflow_dispatch:
   push:
+    branches:
+      - deploy/vfab-cloud-first
     tags:
       - "vfab-v*"
+    paths:
+      - "src/streamclipper/**"
+      - "scripts/start_vfab_exe.bat"
+      - "pyproject.toml"
+      - ".github/workflows/windows-exe.yml"
 
 permissions:
   contents: read
