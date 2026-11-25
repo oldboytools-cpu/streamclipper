@@ -79,7 +79,7 @@ class MainActivity : Activity() {
         val input = EditText(this).apply {
             hint = "http://192.168.1.10:8765/?token=..."
             setText(prefill)
-            singleLine = true
+            setSingleLine(true)
             textSize = 14f
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
             setPadding(dp(14), dp(12), dp(14), dp(12))
