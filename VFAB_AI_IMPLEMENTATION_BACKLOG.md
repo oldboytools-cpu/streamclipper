@@ -81,7 +81,7 @@ VFAB AI is a local-first AI clipping and creator studio. Windows is the primary 
 ### Current implementation status
 - Python engine, dashboard, Windows setup and launch scripts exist.
 - A PyInstaller one-folder Windows bundle containing `VFABAI.exe` has been built successfully by GitHub Actions; the packaged CLI `--help` smoke check passed.
-- The Windows workflow now builds a user-level Inno Setup installer (`VFAB-AI-Setup.exe`) in addition to the portable ZIP; this installer's build is being verified.
+- The Windows workflow now builds a user-level Inno Setup installer (`VFAB-AI-Setup.exe`) in addition to the portable ZIP. The portable ZIP is built and verified; the first installer attempt exposed an invalid uninstaller icon reference, now removed, and the corrected installer build is being verified.
 - This is a portable bundle, not a signed installer. FFmpeg/FFprobe are installed separately, and Whisper model files download on first use.
 - A fully polished desktop shell, background-service UX, signing and installer-grade setup still require additional work.
 
@@ -96,7 +96,7 @@ VFAB AI is a local-first AI clipping and creator studio. Windows is the primary 
 ### Current implementation status
 - The Android debug APK builds successfully.
 - A native Kotlin project-control screen now supports workspace connection, VOD/live job submission, Turbo mode, all qualifying ranked clips, project status refresh, cancel and resume.
-- A native ranked-clips screen now loads clip scores and reasons, previews rendered MP4s in-app, downloads clips with the authenticated workspace cookie and shares the downloaded video through Android's share sheet. The APK build is running for this update.
+- A native ranked-clips screen now loads clip scores and reasons, previews rendered MP4s in-app, downloads clips with the authenticated workspace cookie and shares the downloaded video through Android's share sheet. GitHub Actions built and uploaded the updated debug APK successfully (run 45683463614).
 - The full clip editor, preview, trim and export screens still open the existing dashboard inside the app; the entire editing experience is not yet native.
 - Background push notifications, release signing and Play Store preparation still require separate implementation and release setup.
 
