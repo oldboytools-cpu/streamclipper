@@ -17,7 +17,6 @@ OutputBaseFilename=VFAB-AI-Setup
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
-UninstallDisplayIcon={app}\VFABAI.exe
 CloseApplications=no
 RestartApplications=no
 
