@@ -53,7 +53,7 @@ def test_argv_lists(tmp_path):
     lv = jobs.build_live_argv(url, _opts(mode="live", stop_after=2, caption_style="comic-burst"), tmp_path / "j")
     assert lv[:3] == ["live", "--url", url] and lv[lv.index("--stop-after") + 1] == "2"
     assert lv[lv.index("--caption-style") + 1] == "comic-burst" and "--render" in lv
-    assert lv[lv.index("--asr") + 1] == "regions"
+    assert lv[lv.index("--asr") + 1] == "auto"
     r = jobs.build_render_argv(tmp_path / "clip_01.clip.json", "comic-burst", "top-bar")
     assert r == [
         "render",

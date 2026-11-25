@@ -164,7 +164,8 @@ def build_live_argv(source: str, opts: dict, job_dir: Path) -> list:
         argv += ["--draft-root", str(droot), "--portable-drafts"]
     else:
         argv.append("--no-draft")
-    argv += ["--asr", opts.get("asr", "regions")]
+    live_asr = {"regions": "auto"}.get(opts.get("asr", "regions"), opts.get("asr", "auto"))
+    argv += ["--asr", live_asr]
     argv += ["--llm", opts["llm"]]
     return argv
 
