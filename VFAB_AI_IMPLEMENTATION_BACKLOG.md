@@ -37,6 +37,7 @@ VFAB AI is a local-first AI clipping and creator studio. Windows is the primary 
 - Existing engine contains audio scoring, speech recognition, chat/heatmap inputs, face-related analysis and HUD event support.
 - GTA 6 HUD recognition is experimental; YouTube heatmap/chat may not be available for every stream.
 - Dashboard now defaults to Turbo mode: candidate-region transcription with Whisper Tiny and single-beam decoding. Balanced regions, full-stream transcription and no-transcription modes remain selectable. Turbo is faster but less accurate for speech than larger models; candidate-region analysis can miss quiet moments outside selected regions.
+- MP4 export now smoke-tests Intel Quick Sync (`h264_qsv`) and uses it when the FFmpeg build and driver can encode; if unavailable or a render fails, it falls back to x264 `veryfast`. Hardware speed-up is not yet benchmarked on the user's specific laptop.
 - GitHub Actions CI passed on Windows and Ubuntu with Python 3.10 and 3.12 for the Turbo-mode changes.
 - Better multimodal fusion and quality evaluation remain development work.
 
@@ -80,6 +81,7 @@ VFAB AI is a local-first AI clipping and creator studio. Windows is the primary 
 ### Current implementation status
 - Python engine, dashboard, Windows setup and launch scripts exist.
 - A PyInstaller one-folder Windows bundle containing `VFABAI.exe` has been built successfully by GitHub Actions; the packaged CLI `--help` smoke check passed.
+- The Windows workflow now builds a user-level Inno Setup installer (`VFAB-AI-Setup.exe`) in addition to the portable ZIP; this installer's build is being verified.
 - This is a portable bundle, not a signed installer. FFmpeg/FFprobe are installed separately, and Whisper model files download on first use.
 - A fully polished desktop shell, background-service UX, signing and installer-grade setup still require additional work.
 
@@ -94,6 +96,7 @@ VFAB AI is a local-first AI clipping and creator studio. Windows is the primary 
 ### Current implementation status
 - The Android debug APK builds successfully.
 - A native Kotlin project-control screen now supports workspace connection, VOD/live job submission, Turbo mode, all qualifying ranked clips, project status refresh, cancel and resume.
+- A native ranked-clips screen now loads clip scores and reasons, previews rendered MP4s in-app, downloads clips with the authenticated workspace cookie and shares the downloaded video through Android's share sheet. The APK build is running for this update.
 - The full clip editor, preview, trim and export screens still open the existing dashboard inside the app; the entire editing experience is not yet native.
 - Background push notifications, release signing and Play Store preparation still require separate implementation and release setup.
 
