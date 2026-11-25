@@ -32,7 +32,19 @@ jobs:
 
       - name: Build Android debug APK
         working-directory: mobile/android
-        run: gradle --no-daemon assembleDebug
+        shell: bash
+        run: |
+          for attempt in 1 2 3; do
+            echo "Android build attempt $attempt/3"
+            if gradle --no-daemon --max-workers=2 assembleDebug; then
+              exit 0
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              echo "Gradle dependency fetch failed; waiting before retry."
+              sleep $((attempt * 25))
+            fi
+          done
+          exit 1
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
