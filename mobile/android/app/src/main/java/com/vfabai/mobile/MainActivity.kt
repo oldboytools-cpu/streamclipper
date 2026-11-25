@@ -2,10 +2,17 @@ package com.vfabai.mobile
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.app.DownloadManager
+import android.content.BroadcastReceiver
+import android.content.ClipData
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
+import android.os.Build
+import android.os.Environment
 import android.text.InputType
 import android.view.Gravity
 import android.view.View
@@ -14,6 +21,8 @@ import android.widget.ArrayAdapter
 import android.widget.ScrollView
 import android.widget.Spinner
 import android.widget.FrameLayout
+import android.widget.MediaController
+import android.widget.VideoView
 import android.os.Handler
 import android.os.Looper
 import org.json.JSONArray
@@ -45,6 +54,38 @@ class MainActivity : Activity() {
     private var jobsBox: LinearLayout? = null
     private var sourceInput: EditText? = null
     private var modePicker: Spinner? = null
+    private var clipsPanel: View? = null
+    private var clipsBox: LinearLayout? = null
+    private var previewPanel: View? = null
+    private var activeClipJobId = ""
+    private var pendingShareDownloadId: Long? = null
+    private var downloadReceiverRegistered = false
+    private val downloadDoneReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            val id = intent?.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1L) ?: return
+            val manager = getSystemService(DOWNLOAD_SERVICE) as DownloadManager
+            val cursor = manager.query(DownloadManager.Query().setFilterById(id))
+            var status = -1
+            if (cursor != null) {
+                if (cursor.moveToFirst()) {
+                    status = cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS))
+                }
+                cursor.close()
+            }
+            if (id == pendingShareDownloadId) {
+                pendingShareDownloadId = null
+                if (status == DownloadManager.STATUS_SUCCESSFUL) {
+                    val uri = manager.getUriForDownloadedFile(id)
+                    if (uri != null) shareClipUri(uri)
+                    else Toast.makeText(this@MainActivity, "The clip downloaded, but Android did not return its file URI.", Toast.LENGTH_LONG).show()
+                } else {
+                    Toast.makeText(this@MainActivity, "Clip download failed. Check the connection and try again.", Toast.LENGTH_LONG).show()
+                }
+            } else if (status == DownloadManager.STATUS_SUCCESSFUL) {
+                Toast.makeText(this@MainActivity, "Clip downloaded to VFAB AI app storage.", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
     private val uiHandler = Handler(Looper.getMainLooper())
     private var polling = false
     private val pollJobs = object : Runnable {
@@ -57,6 +98,7 @@ class MainActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        registerDownloadReceiver()
         window.statusBarColor = Color.rgb(17, 24, 39)
         window.navigationBarColor = Color.rgb(17, 24, 39)
         val saved = preferences.getString("dashboard_url", "") ?: ""
@@ -81,6 +123,10 @@ class MainActivity : Activity() {
         jobsBox = null
         sourceInput = null
         modePicker = null
+        clipsPanel = null
+        clipsBox = null
+        previewPanel = null
+        activeClipJobId = ""
         webView?.stopLoading()
         webView?.destroy()
         webView = null
@@ -244,6 +290,7 @@ class MainActivity : Activity() {
         browser.webViewClient = object : WebViewClient() {
             override fun onPageFinished(view: WebView?, url: String?) {
                 if (nativePanel?.visibility == View.VISIBLE) refreshNativeJobs()
+                else if (clipsPanel?.visibility == View.VISIBLE && activeClipJobId.isNotBlank()) refreshNativeClips(activeClipJobId)
             }
 
             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
@@ -308,6 +355,9 @@ class MainActivity : Activity() {
 
     private fun showNativeHome() {
         val frame = rootFrame ?: return
+        clipsPanel?.visibility = View.GONE
+        previewPanel?.visibility = View.GONE
+        webView?.visibility = View.GONE
         val panel = nativePanel ?: buildNativeHomePanel().also {
             nativePanel = it
             frame.addView(it, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
@@ -320,6 +370,8 @@ class MainActivity : Activity() {
     private fun openFullDashboard(jobId: String? = null) {
         stopNativePolling()
         nativePanel?.visibility = View.GONE
+        clipsPanel?.visibility = View.GONE
+        previewPanel?.visibility = View.GONE
         val browser = webView ?: return
         browser.visibility = View.VISIBLE
         if (jobId != null) {
@@ -533,7 +585,7 @@ class MainActivity : Activity() {
             val open = Button(this).apply {
                 text = "Open clips"
                 isAllCaps = false
-                setOnClickListener { openFullDashboard(id) }
+                setOnClickListener { showNativeClips(id) }
             }
             row.addView(open)
             if (status in listOf("failed", "cancelled", "interrupted", "stopped")) {
@@ -560,6 +612,276 @@ class MainActivity : Activity() {
             card.addView(row, marginParams(top = 4))
             list.addView(card, marginParams(top = 8))
         }
+    }
+
+
+    private fun showNativeClips(jobId: String) {
+        val frame = rootFrame ?: return
+        activeClipJobId = jobId
+        stopNativePolling()
+        nativePanel?.visibility = View.GONE
+        previewPanel?.visibility = View.GONE
+        webView?.visibility = View.GONE
+        val panel = clipsPanel ?: buildNativeClipsPanel().also {
+            clipsPanel = it
+            frame.addView(it, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+        }
+        panel.visibility = View.VISIBLE
+        refreshNativeClips(jobId)
+    }
+
+    private fun buildNativeClipsPanel(): View {
+        val page = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(16), dp(12), dp(16), dp(16))
+            setBackgroundColor(Color.rgb(247, 248, 252))
+        }
+        val header = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        header.addView(text("Ranked clips", 21f, Color.rgb(22, 28, 45), true),
+            LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        val projects = Button(this).apply {
+            text = "Projects"
+            isAllCaps = false
+            setOnClickListener { showNativeHome() }
+        }
+        header.addView(projects)
+        val editor = Button(this).apply {
+            text = "Full editor"
+            isAllCaps = false
+            setOnClickListener { openFullDashboard(activeClipJobId) }
+        }
+        header.addView(editor)
+        page.addView(header)
+        page.addView(
+            text("Best-scoring qualifying moments first · preview, download or share", 12f, Color.rgb(83, 91, 108)),
+            marginParams(top = 3, bottom = 10)
+        )
+        val refresh = Button(this).apply {
+            text = "Refresh clips"
+            isAllCaps = false
+            setOnClickListener { if (activeClipJobId.isNotBlank()) refreshNativeClips(activeClipJobId) }
+        }
+        page.addView(refresh)
+        val scroll = ScrollView(this)
+        val list = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(0, dp(8), 0, dp(10))
+        }
+        clipsBox = list
+        scroll.addView(list)
+        page.addView(scroll, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
+        return page
+    }
+
+    private fun refreshNativeClips(jobId: String) {
+        val browser = webView ?: return
+        val idLiteral = JSONObject.quote(jobId)
+        val script = "(async()=>{try{const id=$idLiteral;" +
+            "const r=await fetch('/api/jobs/'+encodeURIComponent(id)+'/clips',{cache:'no-store'});" +
+            "return JSON.stringify({ok:r.ok,data:await r.json()});" +
+            "}catch(e){return JSON.stringify({ok:false,error:String(e)});}})()"
+        browser.evaluateJavascript(script) { raw ->
+            val value = decodeJavascriptString(raw)
+            try {
+                val obj = JSONObject(value)
+                if (!obj.optBoolean("ok")) {
+                    showNativeClipsMessage("Cannot load clips. Check that the laptop workspace is online.")
+                    return@evaluateJavascript
+                }
+                val data = obj.optJSONObject("data")
+                renderNativeClips(data?.optJSONArray("clips") ?: JSONArray())
+            } catch (_: Exception) {
+                showNativeClipsMessage("Waiting for the clips list.")
+            }
+        }
+    }
+
+    private fun renderNativeClips(clips: JSONArray) {
+        val list = clipsBox ?: return
+        list.removeAllViews()
+        if (clips.length() == 0) {
+            list.addView(
+                text("No rendered clips yet. Refresh after analysis finishes.", 14f, Color.rgb(83, 91, 108)),
+                marginParams(top = 14)
+            )
+            return
+        }
+        for (i in 0 until clips.length()) {
+            val clip = clips.optJSONObject(i) ?: continue
+            val rank = clip.optInt("rank", i + 1)
+            val score = clip.optDouble("score", 0.0)
+            val titleText = clip.optString("title").ifBlank { "Highlight $rank" }
+            val category = clip.optString("category").ifBlank { "Highlight" }
+            val start = clip.optDouble("start", 0.0)
+            val end = clip.optDouble("end", 0.0)
+            val mp4 = clip.optString("mp4_url")
+            val reason = clip.optString("reason")
+            val card = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                setPadding(dp(13), dp(12), dp(13), dp(12))
+                setBackgroundColor(Color.WHITE)
+            }
+            card.addView(text("#$rank  ·  ${score.toInt()}/100  ·  $category", 13f, Color.rgb(91, 77, 220), true))
+            card.addView(text(titleText, 15f, Color.rgb(22, 28, 45), true), marginParams(top = 4))
+            card.addView(
+                text("${formatClipTime(start)} – ${formatClipTime(end)}", 12f, Color.rgb(83, 91, 108)),
+                marginParams(top = 3)
+            )
+            if (reason.isNotBlank()) card.addView(text(reason, 12f, Color.rgb(83, 91, 108)), marginParams(top = 4))
+            val actions = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.END
+            }
+            val preview = Button(this).apply {
+                text = "Preview"
+                isAllCaps = false
+                isEnabled = mp4.isNotBlank()
+                setOnClickListener { showNativePreview(clip) }
+            }
+            actions.addView(preview)
+            val download = Button(this).apply {
+                text = "Download"
+                isAllCaps = false
+                isEnabled = mp4.isNotBlank()
+                setOnClickListener { enqueueClipDownload(clip, false) }
+            }
+            actions.addView(download)
+            val share = Button(this).apply {
+                text = "Share"
+                isAllCaps = false
+                isEnabled = mp4.isNotBlank()
+                setOnClickListener { enqueueClipDownload(clip, true) }
+            }
+            actions.addView(share)
+            card.addView(actions, marginParams(top = 6))
+            list.addView(card, marginParams(top = 8))
+        }
+    }
+
+    private fun formatClipTime(value: Double): String {
+        val total = value.toInt().coerceAtLeast(0)
+        val hours = total / 3600
+        val minutes = (total % 3600) / 60
+        val seconds = total % 60
+        return if (hours > 0) String.format("%d:%02d:%02d", hours, minutes, seconds)
+        else String.format("%02d:%02d", minutes, seconds)
+    }
+
+    private fun showNativeClipsMessage(message: String) {
+        val list = clipsBox ?: return
+        list.removeAllViews()
+        list.addView(text(message, 14f, Color.rgb(83, 91, 108)), marginParams(top = 14))
+    }
+
+    private fun showNativePreview(clip: JSONObject) {
+        val frame = rootFrame ?: return
+        val relative = clip.optString("mp4_url")
+        val base = allowedOrigin ?: return
+        if (relative.isBlank()) {
+            Toast.makeText(this, "This highlight has no rendered MP4 yet.", Toast.LENGTH_LONG).show()
+            return
+        }
+        val panel = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(16), dp(14), dp(16), dp(16))
+            setBackgroundColor(Color.rgb(17, 24, 39))
+        }
+        val top = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        val back = Button(this).apply {
+            text = "Back to clips"
+            isAllCaps = false
+            setOnClickListener {
+                (previewPanel as? LinearLayout)?.let { root ->
+                    (root.getChildAt(1) as? VideoView)?.stopPlayback()
+                }
+                previewPanel?.visibility = View.GONE
+                clipsPanel?.visibility = View.VISIBLE
+            }
+        }
+        top.addView(back)
+        top.addView(
+            text(clip.optString("title").ifBlank { "VFAB clip" }, 14f, Color.WHITE, true),
+            LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        )
+        panel.addView(top)
+        val video = VideoView(this)
+        panel.addView(video, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
+        val media = MediaController(this)
+        media.setAnchorView(video)
+        video.setMediaController(media)
+        val cookie = CookieManager.getInstance().getCookie(base).orEmpty()
+        val headers = if (cookie.isBlank()) emptyMap() else mapOf("Cookie" to cookie)
+        val clipUri = Uri.parse(base.trimEnd('/') + relative)
+        video.setVideoURI(clipUri, headers)
+        video.setOnPreparedListener { video.start() }
+        video.setOnErrorListener { _, _, _ ->
+            Toast.makeText(this, "Preview could not load. Try downloading the clip.", Toast.LENGTH_LONG).show()
+            true
+        }
+        clipsPanel?.visibility = View.GONE
+        nativePanel?.visibility = View.GONE
+        webView?.visibility = View.GONE
+        previewPanel?.let { frame.removeView(it) }
+        previewPanel = panel
+        frame.addView(panel, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+    }
+
+    private fun enqueueClipDownload(clip: JSONObject, shareAfter: Boolean) {
+        val base = allowedOrigin ?: return
+        val relative = clip.optString("mp4_url")
+        if (relative.isBlank()) {
+            Toast.makeText(this, "This highlight has no rendered MP4 yet.", Toast.LENGTH_LONG).show()
+            return
+        }
+        val rank = clip.optInt("rank", 1)
+        val titleText = clip.optString("title").ifBlank { "Highlight $rank" }
+        val safeJob = activeClipJobId.replace(Regex("[^A-Za-z0-9_-]"), "_")
+        val fileName = "VFAB_${safeJob}_clip_${rank}.mp4"
+        val uri = Uri.parse(base.trimEnd('/') + relative)
+        val request = DownloadManager.Request(uri)
+            .setTitle(titleText)
+            .setDescription("Downloading VFAB AI clip #$rank")
+            .setMimeType("video/mp4")
+            .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+            .setAllowedNetworkTypes(DownloadManager.Request.NETWORK_WIFI or DownloadManager.Request.NETWORK_MOBILE)
+            .setDestinationInExternalFilesDir(this, Environment.DIRECTORY_MOVIES, fileName)
+        val cookie = CookieManager.getInstance().getCookie(base)
+        if (!cookie.isNullOrBlank()) request.addRequestHeader("Cookie", cookie)
+        val manager = getSystemService(DOWNLOAD_SERVICE) as DownloadManager
+        val id = manager.enqueue(request)
+        if (shareAfter) pendingShareDownloadId = id
+        Toast.makeText(this, if (shareAfter) "Downloading clip before sharing…" else "Clip download started.", Toast.LENGTH_LONG).show()
+    }
+
+    private fun shareClipUri(uri: Uri) {
+        val share = Intent(Intent.ACTION_SEND).apply {
+            type = "video/mp4"
+            putExtra(Intent.EXTRA_STREAM, uri)
+            clipData = ClipData.newUri(contentResolver, "VFAB AI clip", uri)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        try {
+            startActivity(Intent.createChooser(share, "Share VFAB AI clip"))
+        } catch (_: Exception) {
+            Toast.makeText(this, "No compatible app is available to share this clip.", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun registerDownloadReceiver() {
+        if (downloadReceiverRegistered) return
+        val filter = IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE)
+        if (Build.VERSION.SDK_INT >= 33) {
+            registerReceiver(downloadDoneReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            registerReceiver(downloadDoneReceiver, filter)
+        }
+        downloadReceiverRegistered = true
     }
 
     private fun showNativeMessage(message: String) {
@@ -604,6 +926,18 @@ class MainActivity : Activity() {
 
     @Deprecated("Deprecated in Android API; WebView history is handled here")
     override fun onBackPressed() {
+        if (previewPanel?.visibility == View.VISIBLE) {
+            (previewPanel as? LinearLayout)?.let { root ->
+                (root.getChildAt(1) as? VideoView)?.stopPlayback()
+            }
+            previewPanel?.visibility = View.GONE
+            clipsPanel?.visibility = View.VISIBLE
+            return
+        }
+        if (clipsPanel?.visibility == View.VISIBLE) {
+            showNativeHome()
+            return
+        }
         if (nativePanel?.visibility == View.VISIBLE) {
             openFullDashboard()
             return
@@ -620,6 +954,10 @@ class MainActivity : Activity() {
 
     override fun onDestroy() {
         stopNativePolling()
+        if (downloadReceiverRegistered) {
+            unregisterReceiver(downloadDoneReceiver)
+            downloadReceiverRegistered = false
+        }
         fileChooser?.onReceiveValue(null)
         fileChooser = null
         webView?.apply {
