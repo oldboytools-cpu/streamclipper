@@ -5,6 +5,7 @@ import os
 import re
 import shutil
 import struct
+from functools import lru_cache
 from pathlib import Path
 
 from streamclipper.audio import measure_loudness
@@ -259,6 +260,71 @@ def loudness_measure(cmd_inputs: list, graph: str, cwd: Path, frames: bool = Fal
         for x in re.findall(r"\bM:\s*(-?[\d.]+)", text[: text.rfind("Summary:")] if "Summary:" in text else text)
     ]
     return li, tp, m
+
+
+
+@lru_cache(maxsize=1)
+def _qsv_encoder_available() -> bool:
+    """Return True only when this FFmpeg build can actually initialize Intel Quick Sync."""
+    result = run_cmd(
+        [
+            "ffmpeg",
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=c=black:s=128x128:r=1:d=1",
+            "-frames:v",
+            "1",
+            "-pix_fmt",
+            "nv12",
+            "-c:v",
+            "h264_qsv",
+            "-f",
+            "null",
+            "-",
+        ],
+        "Intel Quick Sync encoder availability check",
+        check=False,
+    )
+    return result.returncode == 0
+
+
+def _video_encoder_args(use_qsv: bool) -> list:
+    """Fast export encoder settings; QSV is used only after a real device-encode smoke test."""
+    if use_qsv:
+        return [
+            "-c:v",
+            "h264_qsv",
+            "-profile:v",
+            "high",
+            "-preset",
+            "veryfast",
+            "-global_quality",
+            "22",
+            "-maxrate",
+            "12M",
+            "-bufsize",
+            "24M",
+        ]
+    return [
+        "-c:v",
+        "libx264",
+        "-profile:v",
+        "high",
+        "-preset",
+        "veryfast",
+        "-crf",
+        "20",
+        "-maxrate",
+        "12M",
+        "-bufsize",
+        "24M",
+        "-pix_fmt",
+        "yuv420p",
+    ]
 
 
 def render_plan_mp4(plan: dict, out_mp4: Path) -> Path:
@@ -563,52 +629,51 @@ def render_plan_mp4(plan: dict, out_mp4: Path) -> Path:
 
     tmp = out_mp4.with_name(out_mp4.stem + ".part.mp4")
     print(f"Rendering {fwd(out_mp4)} ({total:.2f}s, {len(segs)} pieces, {layout} {ratio}) ...")
-    run_cmd(
-        [
-            "ffmpeg",
-            "-y",
-            "-hide_banner",
-            "-loglevel",
-            "error",
-            *inputs,
-            *sfx_inputs,
-            *brand_inputs,
-            *_graph_args(gfile.name),
-            "-map",
-            "[vout]",
-            "-map",
-            "[aout]",
-            "-c:v",
-            "libx264",
-            "-profile:v",
-            "high",
-            "-preset",
-            "medium",
-            "-crf",
-            "20",
-            "-maxrate",
-            "12M",
-            "-bufsize",
-            "24M",
-            "-pix_fmt",
-            "yuv420p",
-            "-r",
-            str(fps),
-            "-g",
-            "60",
-            "-c:a",
-            "aac",
-            "-b:a",
-            "192k",
-            "-ar",
-            "48000",
-            "-movflags",
-            "+faststart",
-            str(tmp),
-        ],
-        f"MP4 render of {name}",
-        cwd=rdir,
-    )
+    use_qsv = _qsv_encoder_available()
+    print("Video encoder: Intel Quick Sync (hardware)" if use_qsv else "Video encoder: x264 veryfast (CPU fallback)")
+    def encode(use_hardware: bool):
+        run_cmd(
+            [
+                "ffmpeg",
+                "-y",
+                "-hide_banner",
+                "-loglevel",
+                "error",
+                *inputs,
+                *sfx_inputs,
+                *brand_inputs,
+                *_graph_args(gfile.name),
+                "-map",
+                "[vout]",
+                "-map",
+                "[aout]",
+                *_video_encoder_args(use_hardware),
+                "-r",
+                str(fps),
+                "-g",
+                "60",
+                "-c:a",
+                "aac",
+                "-b:a",
+                "192k",
+                "-ar",
+                "48000",
+                "-movflags",
+                "+faststart",
+                str(tmp),
+            ],
+            f"MP4 render of {name}",
+            cwd=rdir,
+        )
+
+    try:
+        encode(use_qsv)
+    except ToolError:
+        if not use_qsv:
+            raise
+        print("Intel Quick Sync failed during this render; retrying with x264 veryfast on the CPU.")
+        tmp.unlink(missing_ok=True)
+        encode(False)
     os.replace(tmp, out_mp4)
 
     sw = plan.get("source_window") or {}
