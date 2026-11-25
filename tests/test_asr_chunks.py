@@ -1,4 +1,6 @@
-from streamclipper.asr import chunk_bounds, read_wav16k, silence_gaps, transcribe_full
+from types import SimpleNamespace
+
+from streamclipper.asr import Whisper, choose_model, chunk_bounds, read_wav16k, silence_gaps, transcribe_full
 from streamclipper.state import RunState
 
 
@@ -96,3 +98,21 @@ def test_read_wav16k_gives_float_samples(tmp_path):
     a = read_wav16k(wav)
     assert a.dtype == np.float32
     assert a.tolist() == [0.0, 0.5, -1.0]
+
+
+def test_tiny_model_is_explicit_fast_cpu_choice():
+    assert choose_model("cpu", 7 * 3600, "tiny") == ["tiny"]
+
+
+def test_tiny_model_uses_fast_decode_settings():
+    class FakeModel:
+        def transcribe(self, audio, **kwargs):
+            self.kwargs = kwargs
+            return [], SimpleNamespace(language="en")
+
+    model = FakeModel()
+    words, language = Whisper(model, "tiny", "cpu", "int8").run([], "en")
+    assert words == [] and language == "en"
+    assert model.kwargs["beam_size"] == 1
+    assert model.kwargs["best_of"] == 1
+    assert model.kwargs["condition_on_previous_text"] is False

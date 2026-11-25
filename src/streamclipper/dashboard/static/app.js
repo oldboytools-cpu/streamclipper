@@ -867,7 +867,7 @@ async function brandCard(box) {
 
 async function pageHome(root) {
   const d = OPTS.defaults || {};
-  const st = { mode: "auto", preset: d.preset || "", ratio: "9:16", min_score: 50, max_clips: 0, asr: "regions", llm: "none", render: true, drafts: false, upload: "", uploading: false, zoom: "off", enhance_speech: "off", remove_fillers: false, brand_kit: false };
+  const st = { mode: "auto", preset: d.preset || "", ratio: "9:16", min_score: 50, max_clips: 0, asr: "turbo", llm: "none", render: true, drafts: false, upload: "", uploading: false, zoom: "off", enhance_speech: "off", remove_fillers: false, brand_kit: false };
   const narrow = window.matchMedia("(max-width: 640px)");
   const srcIn = h("input", { type: "text", id: "src-url", class: "hero-input", placeholder: narrow.matches ? "Paste a link or drop a video" : "Paste a stream link or drop a video", autocomplete: "off", spellcheck: "false", "aria-label": "Stream link or video" });
   const fileIn = h("input", { type: "file", id: "src-file", accept: "video/*,.mkv,.ts,.flv,.m4v", hidden: true });
@@ -954,7 +954,7 @@ async function pageHome(root) {
   llmOpts.push(OPTS.llms.includes("gemini") ? ["gemini", "Gemini"] : ["gemini", "Gemini (needs GEMINI_API_KEY)", true]);
   const llmSel = sel(llmOpts, "none", { id: "adv-llm", onchange: (e) => (st.llm = e.target.value) });
   const ratioSel = sel(OPTS.ratios, st.ratio, { id: "adv-ratio", onchange: (e) => (st.ratio = e.target.value) });
-  const asrSel = sel([["regions", "Candidate regions (faster)"], ["full", "Full stream (more context, slower)"], ["none", "Off (fastest, less speech context)"]], st.asr, { id: "adv-asr", onchange: (e) => (st.asr = e.target.value) });
+  const asrSel = sel([["turbo", "Turbo (Tiny model + candidate regions)"], ["regions", "Balanced (candidate regions)"], ["full", "Full stream (best speech coverage, slow)"], ["none", "No transcription (fastest, less speech context)"]], st.asr, { id: "adv-asr", onchange: (e) => (st.asr = e.target.value) });
   const toggle = (key, label, id) => {
     const c = h("input", { type: "checkbox", checked: st[key], id, role: "switch" });
     c.addEventListener("change", () => (st[key] = c.checked));
@@ -984,7 +984,7 @@ async function pageHome(root) {
       field("Aspect ratio", ratioSel),
       h("div", { class: "field" }, h("span", {}, "Minimum score ", scoreVal), score, h("span", { class: "hint", text: "Higher = fewer, stronger clips" })),
       field("Clips to make", maxIn, "Best first; 0 = every clip above the score"),
-      field("Speech transcription", asrSel, "Regions transcribes only stronger candidate moments; full checks every 10-minute audio chunk but is much slower on a CPU."),
+      field("Processing speed", asrSel, "Turbo uses Whisper Tiny on selected moments. Balanced uses the automatic model on selected moments. Full transcribes the entire stream and is slower on a CPU."),
       field("AI for titles", llmSel, OPTS.llms.includes("gemini") ? "" : "Set GEMINI_API_KEY before you start the dashboard to use Gemini.")
     ),
     h("div", { class: "row" }, toggle("render", "Render ready-to-post MP4s", "adv-render"), toggle("drafts", "CapCut drafts", "adv-drafts")),

@@ -36,7 +36,7 @@ VFAB AI is a local-first AI clipping and creator studio. Windows is the primary 
 ### Current implementation status
 - Existing engine contains audio scoring, speech recognition, chat/heatmap inputs, face-related analysis and HUD event support.
 - GTA 6 HUD recognition is experimental; YouTube heatmap/chat may not be available for every stream.
-- Dashboard now defaults to candidate-region transcription on CPU; users can select full-stream transcription for more speech context or disable Whisper for speed. Regions may miss quiet moments not selected as strong candidates.
+- Dashboard now defaults to Turbo mode: candidate-region transcription with Whisper Tiny and single-beam decoding. Balanced regions, full-stream transcription and no-transcription modes remain selectable. Turbo is faster but less accurate for speech than larger models; candidate-region analysis can miss quiet moments outside selected regions.
 - Better multimodal fusion and quality evaluation remain development work.
 
 ## 3. Editing studio
@@ -132,7 +132,7 @@ A feature is complete only when its acceptance test passes; source code or a con
 
 ## 10. Delivery order
 
-1. Stabilise end-to-end local processing and unlimited/ranked clip selection.
+1. Stabilise end-to-end local processing, Turbo-mode speed, and unlimited/ranked clip selection.
 2. Validate and improve AI highlight quality.
 3. Complete editing and brand-kit experience.
 4. Verify publishing integrations.

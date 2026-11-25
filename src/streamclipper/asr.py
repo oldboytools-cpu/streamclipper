@@ -50,6 +50,8 @@ class Whisper:
     def run(self, audio, language=None) -> tuple:
         """(words relative to the audio start, detected language). audio = wav path or 16 kHz float array."""
         kw = {"word_timestamps": True, "vad_filter": True, "language": language}
+        if self.name.startswith("tiny"):
+            kw.update(beam_size=1, best_of=1, condition_on_previous_text=False)
         if isinstance(audio, (str, Path)):
             audio = read_wav16k(audio)
         if self.device == "cuda" and self.batch_size:
