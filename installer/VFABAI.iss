@@ -14,7 +14,6 @@ ArchitecturesAllowed=x64
 ArchitecturesInstallIn64BitMode=x64
 OutputDir=..\dist\installer
 OutputBaseFilename=VFAB-AI-Setup
-SetupIconFile=..\src\streamclipper\dashboard\static\logo.png
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
@@ -33,4 +32,4 @@ Name: "{group}\VFAB AI Creator Studio"; Filename: "{cmd}"; Parameters: "/c ""{ap
 Name: "{autodesktop}\VFAB AI Creator Studio"; Filename: "{cmd}"; Parameters: "/c ""{app}\Start-VFAB-AI.bat"""; WorkingDir: "{app}"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\Start-VFAB-AI.bat"; Description: "Launch VFAB AI"; Flags: postinstall nowait skipifsilent
+Filename: "{cmd}"; Parameters: "/c ""{app}\Start-VFAB-AI.bat"""; WorkingDir: "{app}"; Description: "Launch VFAB AI"; Flags: postinstall nowait skipifsilent
