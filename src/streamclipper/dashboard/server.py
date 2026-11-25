@@ -450,7 +450,11 @@ class Handler(BaseHTTPRequestHandler):
                     if forwarded in ("http", "https"):
                         scheme = forwarded
                 secure = "; Secure" if scheme == "https" else ""
-                self.send_header("Set-Cookie", f"{COOKIE}={access}; HttpOnly; SameSite=Strict; Path=/; Max-Age=2592000{secure}")
+                cookie = (
+                    f"{COOKIE}={access}; HttpOnly; SameSite=Strict; Path=/; "
+                    f"Max-Age=2592000{secure}"
+                )
+                self.send_header("Set-Cookie", cookie)
                 self.send_header("Location", raw_path or "/")
                 self.send_header("Content-Length", "0")
                 self.send_header("Cache-Control", "no-store")

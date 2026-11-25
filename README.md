@@ -12,6 +12,8 @@
   <a href="https://github.com/alokbaraii/streamclipper"><img src="https://img.shields.io/github/stars/alokbaraii/streamclipper?style=social" alt="GitHub stars"></a>
 </p>
 
+> VFAB AI project setup: [Windows + Android installation guide](VFAB_AI_START_HERE.md).
+
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https%3A%2F%2Fgithub.com%2Foldboytools-cpu%2Fstreamclipper%2Ftree%2Fdeploy%2Fvfab-cloud-first)
 
 ## Why StreamClipper
