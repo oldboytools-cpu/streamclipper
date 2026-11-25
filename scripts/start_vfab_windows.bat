@@ -12,5 +12,5 @@ call .venv\Scripts\activate.bat
 if not defined STREAMCLIPPER_WORKSPACE set "STREAMCLIPPER_WORKSPACE=%USERPROFILE%\Videos\VFAB-AI"
 echo VFAB AI workspace: %STREAMCLIPPER_WORKSPACE%
 echo This dashboard is private to this laptop.
-streamclipper dashboard
+streamclipper dashboard --workspace "%STREAMCLIPPER_WORKSPACE%"
 pause

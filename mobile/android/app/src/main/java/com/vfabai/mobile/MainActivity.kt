@@ -125,10 +125,33 @@ class MainActivity : Activity() {
         return "$scheme://$host:$port"
     }
 
+    private fun isPrivateHttpHost(host: String): Boolean {
+        val value = host.lowercase()
+        if (value == "localhost" || value.endsWith(".local")) return true
+        val parts = value.split(".")
+        if (parts.size != 4) return false
+        val octets = parts.map { it.toIntOrNull() ?: return false }
+        if (octets.any { it !in 0..255 }) return false
+        return octets[0] == 10 ||
+            (octets[0] == 172 && octets[1] in 16..31) ||
+            (octets[0] == 192 && octets[1] == 168) ||
+            octets[0] == 127 ||
+            (octets[0] == 169 && octets[1] == 254)
+    }
+
     private fun connect(raw: String) {
         val uri = try { Uri.parse(raw) } catch (_: Exception) { null }
-        if (uri == null || (uri.scheme != "http" && uri.scheme != "https") || uri.host.isNullOrBlank()) {
+        if (uri == null || uri.host.isNullOrBlank()) {
             Toast.makeText(this, "Enter a valid http or https dashboard link.", Toast.LENGTH_LONG).show()
+            return
+        }
+        val scheme = (uri.scheme ?: "").lowercase()
+        if (scheme != "http" && scheme != "https") {
+            Toast.makeText(this, "Only http and https dashboard links are supported.", Toast.LENGTH_LONG).show()
+            return
+        }
+        if (scheme == "http" && !isPrivateHttpHost(uri.host!!)) {
+            Toast.makeText(this, "For safety, HTTP is allowed only for private/local network addresses. Use HTTPS for cloud.", Toast.LENGTH_LONG).show()
             return
         }
         if (uri.getQueryParameter("token").isNullOrBlank()) {

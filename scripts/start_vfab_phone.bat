@@ -15,5 +15,5 @@ echo Keep this terminal open while the Android app is connected.
 echo Copy the full network URL containing ?token= into the VFAB AI Android app.
 echo Only use this on a trusted private Wi-Fi. Do not share the URL.
 echo.
-streamclipper dashboard --lan --no-browser
+streamclipper dashboard --lan --no-browser --workspace "%STREAMCLIPPER_WORKSPACE%"
 pause
