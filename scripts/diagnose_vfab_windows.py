@@ -12,9 +12,14 @@ import textwrap
 
 CHECKS = [
     ("NumPy", "numpy", "import numpy as m; print('numpy', m.__version__)"),
-    ("CTranslate2", "ctranslate2", "import ctranslate2 as m; print('ctranslate2', m.__version__); print('compute_types', m.get_supported_compute_types('cpu'))"),
-    ("Faster-Whisper", "faster_whisper", "import faster_whisper as m; print('faster_whisper', getattr(m, '__version__', 'version not exposed'))"),
-    ("ONNX Runtime", "onnxruntime", "import onnxruntime as m; print('onnxruntime', m.__version__); print('providers', m.get_available_providers())"),
+    ("CTranslate2", "ctranslate2", "import ctranslate2 as m; "
+     "print('ctranslate2', m.__version__); "
+     "print('compute_types', m.get_supported_compute_types('cpu'))"),
+    ("Faster-Whisper", "faster_whisper", "import faster_whisper as m; "
+     "print('faster_whisper', getattr(m, '__version__', 'version not exposed'))"),
+    ("ONNX Runtime", "onnxruntime", "import onnxruntime as m; "
+     "print('onnxruntime', m.__version__); "
+     "print('providers', m.get_available_providers())"),
     ("MediaPipe", "mediapipe", "import mediapipe as m; print('mediapipe', m.__version__)"),
     ("OpenCV", "cv2", "import cv2 as m; print('opencv', m.__version__)"),
     ("StreamClipper CLI imports", "streamclipper", "import streamclipper.cli; print('streamclipper CLI import OK')"),
