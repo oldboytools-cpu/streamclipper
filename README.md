@@ -14,6 +14,7 @@
 
 > VFAB AI project setup: [Windows + Android installation guide](VFAB_AI_START_HERE.md).
 > Product requirements and implementation status: [VFAB AI implementation backlog](VFAB_AI_IMPLEMENTATION_BACKLOG.md).
+> Windows packaged-build workflow: run [Build VFAB AI for Windows](.github/workflows/windows-exe.yml) from Actions to create a Windows bundle.
 
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https%3A%2F%2Fgithub.com%2Foldboytools-cpu%2Fstreamclipper%2Ftree%2Fdeploy%2Fvfab-cloud-first)
 

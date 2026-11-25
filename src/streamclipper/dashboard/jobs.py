@@ -25,7 +25,7 @@ from streamclipper.paths import PRESET_DIR
 from streamclipper.state import write_json_atomic
 from streamclipper.util import ToolError, own_group_flags
 
-CLI_PREFIX = [sys.executable, "-m", "streamclipper"]  # tests replace it with a fake CLI script
+CLI_PREFIX = [sys.executable] if getattr(sys, "frozen", False) else [sys.executable, "-m", "streamclipper"]  # tests replace with fake CLI
 JOB_ID_RE = re.compile(r"^[0-9A-Za-z-]{1,40}$")
 RATIOS = ("9:16", "1:1")
 ASR_MODES = ("turbo", "regions", "full", "none")

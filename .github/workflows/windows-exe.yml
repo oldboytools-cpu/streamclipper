@@ -1,0 +1,61 @@
+name: Build VFAB AI for Windows
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "vfab-v*"
+
+permissions:
+  contents: read
+
+jobs:
+  windows-exe:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install VFAB and packaging dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[asr,vision]" pyinstaller
+
+      - name: Run lint and tests
+        shell: pwsh
+        run: |
+          python -m pip install -e ".[dev]"
+          ruff check src tests scripts
+          pytest -q
+
+      - name: Package Windows application
+        shell: pwsh
+        run: |
+          pyinstaller --noconfirm --clean --onedir --name VFABAI --paths src --collect-all streamclipper --collect-all faster_whisper --collect-all ctranslate2 --collect-all av --collect-all mediapipe --collect-all onnxruntime --collect-all cv2 --collect-all huggingface_hub src/streamclipper/__main__.py
+          Copy-Item scripts/start_vfab_exe.bat dist/VFABAI/Start-VFAB-AI.bat
+          @"
+          VFAB AI Creator Studio - Windows bundle
+
+          1. Install FFmpeg and FFprobe:
+             winget install --id Gyan.FFmpeg --exact
+          2. Extract this folder.
+          3. Double-click Start-VFAB-AI.bat.
+          4. Keep the terminal window open and visit http://127.0.0.1:8765.
+
+          Local CPU mode is supported. Whisper model files download on first use.
+          CUDA acceleration requires a compatible NVIDIA GPU and matching runtime.
+          "@ | Set-Content dist/VFABAI/README-FIRST.txt
+          .\dist\VFABAI\VFABAI.exe --help
+          Compress-Archive -Path dist/VFABAI/* -DestinationPath VFAB-AI-Windows.zip -Force
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: VFAB-AI-Windows
+          path: VFAB-AI-Windows.zip
+          if-no-files-found: error
+          retention-days: 30
