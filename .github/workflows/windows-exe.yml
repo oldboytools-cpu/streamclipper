@@ -12,6 +12,7 @@ on:
       - "scripts/start_vfab_exe.bat"
       - "pyproject.toml"
       - ".github/workflows/windows-exe.yml"
+      - "installer/**"
 
 permissions:
   contents: read
